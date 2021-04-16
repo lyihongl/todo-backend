@@ -5,6 +5,7 @@ export type MyContext = {
   em: EntityManager<IDatabaseDriver<Connection>>;
   req: Request;
   res: Response;
+  jwtUserId: String | null;
 };
 
 export type UserInfoResponse = {

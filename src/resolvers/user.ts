@@ -15,6 +15,7 @@ import jwt from "jsonwebtoken";
 
 import { User } from "../entities/User";
 import { jwt_secret, __prod__ } from "../constants";
+import { emitWarning } from "node:process";
 
 @InputType()
 class UsernamePasswordInput {
@@ -22,8 +23,6 @@ class UsernamePasswordInput {
   username: string;
   @Field()
   password: string;
-  @Field()
-  email: string;
 }
 
 @ObjectType()
@@ -45,34 +44,22 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  //   @Query(() => [User])
-  //   users(@Ctx() { em }: MyContext): Promise<User[]> {
-  //     return em.find(User, {});
-  //   }
-  //   @Query(() => User, { nullable: true })
-  //   user(
-  //     @Arg("id", () => Int) id: number,
-  //     @Ctx() { em }: MyContext
-  //   ): Promise<User | null> {
-  //     return em.findOne(User, { id });
-  //   }
-  @Query(() => User, {nullable: true})
-  me(
-    @Ctx() { req }: MyContext
-  ) {
-      console.log(req.cookies)
+  @Query(() => User, { nullable: true })
+  me(@Ctx() { jwtUserId }: MyContext) {
+    console.log(jwtUserId);
   }
 
   @Mutation(() => UserResponse)
   async registerUser(
     @Arg("options") options: UsernamePasswordInput,
+    @Arg("email") email: String,
     @Ctx() { em }: MyContext
   ): Promise<UserResponse> {
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       username: options.username,
       password: hashedPassword,
-      email: options.email,
+      email: email,
     });
     try {
       await em.persistAndFlush(user);
@@ -94,7 +81,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em, res }: MyContext
+    @Ctx() { em, res, jwtUserId }: MyContext
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
     if (!user) {
@@ -119,9 +106,12 @@ export class UserResolver {
         ],
       };
     }
+    if (jwtUserId) {
+      console.log(jwtUserId);
+    }
     const token = jwt.sign(
       {
-        username: options.username,
+        userId: user.id,
       },
       jwt_secret,
       { expiresIn: 60 * 60 * 24 * 30 }
@@ -132,6 +122,8 @@ export class UserResolver {
       secure: __prod__,
       sameSite: "lax",
       httpOnly: true,
+      domain: "localhost",
+      path: "/",
     });
 
     return {
