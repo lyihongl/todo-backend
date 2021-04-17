@@ -1,4 +1,5 @@
 import { EntityManager, IDatabaseDriver, Connection } from "@mikro-orm/core";
+import { PubSub } from "apollo-server-express";
 import { Request, Response } from "express";
 
 export type MyContext = {
@@ -6,9 +7,5 @@ export type MyContext = {
   req: Request;
   res: Response;
   jwtUserId: String | null;
-};
-
-export type UserInfoResponse = {
-  username: String;
-  email: String;
+  pubsub: PubSub;
 };

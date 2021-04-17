@@ -3,9 +3,10 @@ import {
   Ctx,
   Field,
   InputType,
-  Int,
   Mutation,
   ObjectType,
+  PubSub,
+  PubSubEngine,
   Query,
   Resolver,
 } from "type-graphql";
@@ -15,7 +16,6 @@ import jwt from "jsonwebtoken";
 
 import { User } from "../entities/User";
 import { jwt_secret, __prod__ } from "../constants";
-import { emitWarning } from "node:process";
 
 @InputType()
 class UsernamePasswordInput {
@@ -81,9 +81,13 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em, res, jwtUserId }: MyContext
+    @Ctx() { em, res, jwtUserId }: MyContext,
+    @PubSub() pubsub: PubSubEngine
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
+
+    await pubsub.publish("TEST", { name: "test" });
+
     if (!user) {
       return {
         errors: [

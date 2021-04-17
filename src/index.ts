@@ -3,21 +3,23 @@ import { MikroORM } from "@mikro-orm/core";
 import { jwt_secret, __prod__ } from "./constants";
 import mikroConfig from "./mikro-orm.config";
 import express from "express";
-import { ApolloServer } from "apollo-server-express";
+import { ApolloServer, PubSub } from "apollo-server-express";
 
 import { buildSchema } from "type-graphql";
-import { HelloResolver } from "./resolvers/hello";
+import { execute, graphql, subscribe } from "graphql";
 import { UserResolver } from "./resolvers/user";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
+import { SubscriptionServer } from "subscriptions-transport-ws";
+import { ExportCompleteNotificationResolver } from "./resolvers/notification";
+import { createServer } from "http";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
   await orm.getMigrator().up();
   const app = express();
-;
-
+  const pubsub = new PubSub();
   app.set("trust proxy", 1);
   app.use(
     cors({
@@ -26,23 +28,60 @@ const main = async () => {
     })
   );
   app.use(cookieParser());
+  // app.use("/sub");
+
+  const graphqlSchema = await buildSchema({
+    resolvers: [UserResolver, ExportCompleteNotificationResolver],
+    validate: false,
+  });
 
   const apolloServer = new ApolloServer({
-    schema: await buildSchema({
-      resolvers: [HelloResolver, UserResolver],
-      validate: false,
-    }),
+    subscriptions:{
+      path: "/sub"
+    },
+    schema: graphqlSchema,
     context: ({ req, res }) => ({
       em: orm.em,
       req,
       res,
-      jwtUserId: req.cookies.jwt ? jwt.verify(req.cookies.jwt, jwt_secret) : null,
+      jwtUserId: req.cookies.jwt
+        ? jwt.verify(req.cookies.jwt, jwt_secret)
+        : null,
+      pubsub,
     }),
   });
 
   apolloServer.applyMiddleware({ app, cors: false });
 
-  app.listen(4000, () => {});
+  const server = createServer(app);
+  server.listen(4000, () => {
+    new SubscriptionServer(
+      {
+        execute,
+        subscribe,
+        schema: graphqlSchema,
+      },
+      {
+        server: server,
+        path: "/sub",
+      }
+    );
+  });
+
+  // app.listen(4000, () => {
+  //   new SubscriptionServer(
+  //     {
+  //       schema: await buildSchema({
+  //         resolvers: [ExportCompleteNotificationResolver],
+  //         validate: false,
+  //       }),
+  //     },
+  //     {
+  //       server: app,
+  //       path: "/subscriptions",
+  //     }
+  //   );
+  // });
 };
 
 main();
