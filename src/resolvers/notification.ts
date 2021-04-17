@@ -26,9 +26,12 @@ class Notification {
 @Resolver()
 export class ExportCompleteNotificationResolver {
   @Subscription({
-    topics: "TEST",
+    topics: ({ args }) => args.topic,
   })
-  newNotification(@Root() notificationPayload: Notification): Notification {
+  newNotification(
+    @Arg("topic") topic: string,
+    @Root() notificationPayload: Notification
+  ): Notification {
     return notificationPayload;
   }
 }
