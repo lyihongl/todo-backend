@@ -53,7 +53,7 @@ export class UserResolver {
   async registerUser(
     @Arg("options") options: UsernamePasswordInput,
     @Arg("email") email: String,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, res }: MyContext
   ): Promise<UserResponse> {
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
@@ -73,8 +73,33 @@ export class UserResolver {
             },
           ],
         };
+      } else if (err.constraint === "user_email_unique") {
+        return {
+          errors: [
+            {
+              field: "email",
+              message: err.detail,
+            },
+          ],
+        };
       }
     }
+    const token = jwt.sign(
+      {
+        userId: user.id,
+      },
+      jwt_secret,
+      { expiresIn: 60 * 60 * 24 * 30 }
+    );
+
+    res.cookie("jwt", token, {
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+      secure: __prod__,
+      sameSite: "lax",
+      httpOnly: true,
+      domain: "localhost",
+      path: "/",
+    });
     return { user };
   }
 
@@ -86,7 +111,9 @@ export class UserResolver {
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
 
-    await pubsub.publish("TEST", { name: "test" });
+    if (user) {
+      await pubsub.publish(`${user.id}`, { name: "test" });
+    }
 
     if (!user) {
       return {
@@ -133,5 +160,16 @@ export class UserResolver {
     return {
       user,
     };
+  }
+  @Mutation(() => String)
+  async deleteUser(@Ctx() { em, res, jwtUserId }: MyContext) {
+    if (jwtUserId) {
+      // em.
+      const user = await em
+        .getRepository(User)
+        .findOneOrFail({ id: jwtUserId?.userId });
+      await em.getRepository(User).remove(user!).flush();
+    }
+    return "ok";
   }
 }

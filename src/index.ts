@@ -14,6 +14,7 @@ import jwt from "jsonwebtoken";
 import { SubscriptionServer } from "subscriptions-transport-ws";
 import { ExportCompleteNotificationResolver } from "./resolvers/notification";
 import { createServer } from "http";
+import { TaskResolver } from "./resolvers/task";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
@@ -31,13 +32,13 @@ const main = async () => {
   // app.use("/sub");
 
   const graphqlSchema = await buildSchema({
-    resolvers: [UserResolver, ExportCompleteNotificationResolver],
+    resolvers: [UserResolver, ExportCompleteNotificationResolver, TaskResolver],
     validate: false,
   });
 
   const apolloServer = new ApolloServer({
-    subscriptions:{
-      path: "/sub"
+    subscriptions: {
+      path: "/sub",
     },
     schema: graphqlSchema,
     context: ({ req, res }) => ({

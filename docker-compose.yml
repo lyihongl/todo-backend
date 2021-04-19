@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -9,12 +9,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=test
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     ports:
-      - '5432:5432'
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
+      - "5432:5432"
+volumes:
+  pgdata:
+    driver: "local"

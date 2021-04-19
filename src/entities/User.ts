@@ -1,5 +1,13 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
+import {
+  Cascade,
+  Collection,
+  Entity,
+  OneToMany,
+  PrimaryKey,
+  Property,
+} from "@mikro-orm/core";
 import { Field, Int, ObjectType } from "type-graphql";
+import { Task } from "./Task";
 
 @ObjectType()
 @Entity()
@@ -9,13 +17,19 @@ export class User {
   id!: number;
 
   @Field()
-  @Property({unique: true})
+  @Property({ unique: true })
   username!: string;
 
   @Property()
   password!: string;
 
   @Field()
-  @Property({unique: true})
+  @Property({ unique: true })
   email!: string;
+
+  @OneToMany(() => Task, (task) => task.userId, {
+    cascade: [Cascade.ALL],
+    orphanRemoval: true,
+  })
+  tasks = new Collection<Task>(this);
 }
