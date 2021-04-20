@@ -15,6 +15,7 @@ import { SubscriptionServer } from "subscriptions-transport-ws";
 import { ExportCompleteNotificationResolver } from "./resolvers/notification";
 import { createServer } from "http";
 import { TaskResolver } from "./resolvers/task";
+import { Kafka } from "kafkajs";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
@@ -68,6 +69,26 @@ const main = async () => {
       }
     );
   });
+  const kafkaClient = new Kafka({
+    clientId: "test",
+    brokers: ["localhost:29092"],
+  });
+  const admin = kafkaClient.admin()
+  admin.connect()
+  console.log(await admin.listTopics())
+  // admin.createTopics({
+  //   validateOnly: false,
+  //   waitForLeaders: true,
+  //   timeout: 2000,
+  //   topics: [
+  //     {
+  //       topic: 'test',
+  //       numPartitions: 1,
+  //       replicationFactor: 1
+  //     }
+  //   ]
+  // })
+  admin.disconnect()
 
   // app.listen(4000, () => {
   //   new SubscriptionServer(
