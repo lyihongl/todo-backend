@@ -2,6 +2,7 @@ import {
   Cascade,
   Collection,
   Entity,
+  LoadStrategy,
   OneToMany,
   PrimaryKey,
   Property,

@@ -12,7 +12,7 @@ import {
   Query,
   Resolver,
 } from "type-graphql";
-import { wrap } from "@mikro-orm/core";
+import { LoadStrategy, wrap } from "@mikro-orm/core";
 import { Task } from "../entities/Task";
 import { User } from "../entities/User";
 import { CompletedTask } from "../entities/CompletedTask";
@@ -52,45 +52,58 @@ export class TaskResolver {
       // console.log(jwtUserId.userId);
       let taskList: Task[];
       try {
-        taskList = await em.find(Task, {
-          userId: jwtUserId.userId,
-        });
-        const taskListResponse = taskList.map((task) => {
-          const now = new Date(Date.now());
-          const today = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate()
-          );
-          console.log(today.toLocaleString());
-          let test: CompletedTask[] = [];
-          try {
-            em.find(CompletedTask, {
-              $and: [
-                { taskId: task },
-                { timeOfCompletion: { $gt: "2021-04-18" } },
-              ],
-            })
-              .then((e) => {
-                test = e;
-              })
-              .catch(() => console.log("error"));
-          } catch (e) {
-            console.log(e);
+        taskList = await em.find(
+          Task,
+          {
+            userId: jwtUserId.userId,
+          },
+          {
+            populate: {
+              CompletedTasks: LoadStrategy.JOINED,
+            },
           }
-          return {
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            time: task.time,
-            completed: test.length > 0,
-          };
+        );
+        // console.log(taskList);
+        taskList.forEach((e) => {
+          console.log(e.CompletedTasks);
         });
-        return taskListResponse;
+        return [];
       } catch (err) {
         console.log(err);
-        return {};
+        return [];
       }
+      // try {
+      //   // const taskListResponse = await Promise.all(
+      //   taskList.forEach((task) => {
+      //     const now = new Date(Date.now());
+      //     const today = new Date(
+      //       now.getFullYear(),
+      //       now.getMonth(),
+      //       now.getDate()
+      //     );
+      //     console.log(today.toLocaleString());
+      //     let test: CompletedTask[] = [];
+      //     em.find(CompletedTask, {
+      //       $and: [
+      //         { taskId: task },
+      //         { timeOfCompletion: { $gt: "2021-04-18" } },
+      //       ],
+      //     })
+      //       .then((e) => (test = e))
+      //       .catch((e) => console.log("error", e));
+      //     // return {
+      //     //   id: task.id,
+      //     //   title: task.title,
+      //     //   description: task.description,
+      //     //   time: task.time,
+      //     //   completed: false,
+      //     // };
+      //   });
+      //   // );
+      //   // return taskListResponse;
+      // } catch (err) {
+      //   return {};
+      // }
     }
   }
   @Query(() => String)

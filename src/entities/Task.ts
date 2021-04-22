@@ -1,10 +1,15 @@
 import {
+  Cascade,
+  Collection,
   Entity,
+  LoadStrategy,
   ManyToOne,
+  OneToMany,
   PrimaryKey,
   Property,
 } from "@mikro-orm/core";
 import { ObjectType } from "type-graphql";
+import { CompletedTask } from "./CompletedTask";
 import { User } from "./User";
 
 @ObjectType()
@@ -24,4 +29,11 @@ export class Task {
 
   @ManyToOne(() => User, { onDelete: "cascade" })
   userId!: User;
+
+  @OneToMany(() => CompletedTask, (task) => task.taskId, {
+    cascade: [Cascade.ALL],
+    orphanRemoval: true,
+    strategy: LoadStrategy.JOINED
+  })
+  CompletedTasks = new Collection<CompletedTask>(this);
 }
