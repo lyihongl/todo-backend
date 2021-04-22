@@ -4,8 +4,11 @@ import {
   Ctx,
   Field,
   InputType,
+  Int,
   Mutation,
   ObjectType,
+  PubSub,
+  PubSubEngine,
   Query,
   Resolver,
 } from "type-graphql";
@@ -23,6 +26,10 @@ class TaskResponse {
   title: String;
   @Field()
   description: String;
+  @Field()
+  time: Number;
+  @Field({ defaultValue: false })
+  completed: Boolean;
 }
 
 @InputType()
@@ -31,7 +38,7 @@ class CreateTaskInput {
   title: string;
   @Field()
   desc: string;
-  @Field()
+  @Field(() => Int)
   time: number;
 }
 
@@ -43,30 +50,67 @@ export class TaskResolver {
       // const user = new User();
       // user.id = jwtUserId.userId;
       // console.log(jwtUserId.userId);
-      let taskList;
+      let taskList: Task[];
       try {
         taskList = await em.find(Task, {
           userId: jwtUserId.userId,
         });
-        taskList.forEach(async (task) => {
-          const test = await em.find(CompletedTask, {
-            $and: [
-              { taskId: task },
-              { timeOfCompletion: { $gt: "2021-04-18" } },
-            ],
-          });
-          console.log(test);
+        const taskListResponse = taskList.map((task) => {
+          const now = new Date(Date.now());
+          const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+          );
+          console.log(today.toLocaleString());
+          let test: CompletedTask[] = [];
+          try {
+            em.find(CompletedTask, {
+              $and: [
+                { taskId: task },
+                { timeOfCompletion: { $gt: "2021-04-18" } },
+              ],
+            })
+              .then((e) => {
+                test = e;
+              })
+              .catch(() => console.log("error"));
+          } catch (e) {
+            console.log(e);
+          }
+          return {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            time: task.time,
+            completed: test.length > 0,
+          };
         });
-      } catch (err) {}
-      console.log(taskList);
-      return taskList;
+        return taskListResponse;
+      } catch (err) {
+        console.log(err);
+        return {};
+      }
     }
+  }
+  @Query(() => String)
+  async testNotif(
+    @Ctx() { jwtUserId }: MyContext,
+    @PubSub() pubsub: PubSubEngine
+  ) {
+    if (jwtUserId?.userId) {
+      await pubsub.publish(`${jwtUserId.userId}`, {
+        name: `${jwtUserId.userId}`,
+      });
+    }
+    return "ok";
   }
   @Mutation(() => String)
   async createTask(
     @Arg("taskInfo") taskInfo: CreateTaskInput,
     @Ctx() { em, res, jwtUserId }: MyContext
   ) {
+    console.log("create task", taskInfo);
     if (jwtUserId) {
       // const user = new User();
       // user.id = jwtUserId.userId;
@@ -82,8 +126,12 @@ export class TaskResolver {
     return "ok";
   }
   @Mutation(() => String)
+  async deleteTask() {
+    return "ok";
+  }
+  @Mutation(() => String)
   async completeTask(
-    @Arg("taskid") taskid: number,
+    @Arg("taskid", () => Int) taskid: number,
     @Ctx() { em, jwtUserId }: MyContext
   ) {
     if (jwtUserId) {

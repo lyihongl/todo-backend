@@ -1,6 +1,7 @@
 import { EntityManager, IDatabaseDriver, Connection } from "@mikro-orm/core";
 import { PubSub } from "apollo-server-express";
 import { Request, Response } from "express";
+import { ExecutionParams } from "subscriptions-transport-ws";
 
 export type MyJwt = {
   userId: number;
@@ -14,4 +15,5 @@ export type MyContext = {
   res: Response;
   jwtUserId: MyJwt | null;
   pubsub: PubSub;
+  connection: ExecutionParams<any>;
 };

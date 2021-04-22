@@ -11,17 +11,25 @@ import { UserResolver } from "./resolvers/user";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
-import { SubscriptionServer } from "subscriptions-transport-ws";
+import {
+  ConnectionContext,
+  ConnectionParams,
+  ExecutionParams,
+  SubscriptionServer,
+} from "subscriptions-transport-ws";
 import { ExportCompleteNotificationResolver } from "./resolvers/notification";
 import { createServer } from "http";
 import { TaskResolver } from "./resolvers/task";
-import { Kafka } from "kafkajs";
+import redis from "redis";
+// import { Kafka } from "kafkajs";
 
 const main = async () => {
+  const redisClient = redis.createClient();
+  // redisClient.set("key", "value", redis.print)
+  // redisClient.get("key", redis.print)
   const orm = await MikroORM.init(mikroConfig);
   await orm.getMigrator().up();
   const app = express();
-  const pubsub = new PubSub();
   app.set("trust proxy", 1);
   app.use(
     cors({
@@ -42,14 +50,14 @@ const main = async () => {
       path: "/sub",
     },
     schema: graphqlSchema,
-    context: ({ req, res }) => ({
+    context: ({ req, res, connection }) => ({
       em: orm.em,
       req,
       res,
+      connection,
       jwtUserId: req.cookies.jwt
         ? jwt.verify(req.cookies.jwt, jwt_secret)
         : null,
-      pubsub,
     }),
   });
 
@@ -62,6 +70,10 @@ const main = async () => {
         execute,
         subscribe,
         schema: graphqlSchema,
+        onConnect: (connectionParams: Object, webSocket: WebSocket) => {
+          console.log("connected", connectionParams);
+          // return { test: connectionParams};
+        },
       },
       {
         server: server,
@@ -69,13 +81,13 @@ const main = async () => {
       }
     );
   });
-  const kafkaClient = new Kafka({
-    clientId: "test",
-    brokers: ["localhost:29092"],
-  });
-  const admin = kafkaClient.admin()
-  admin.connect()
-  console.log(await admin.listTopics())
+  // const kafkaClient = new Kafka({
+  //   clientId: "test",
+  //   brokers: ["localhost:29092"],
+  // });
+  // const admin = kafkaClient.admin()
+  // admin.connect()
+  // console.log(await admin.listTopics())
   // admin.createTopics({
   //   validateOnly: false,
   //   waitForLeaders: true,
@@ -88,7 +100,7 @@ const main = async () => {
   //     }
   //   ]
   // })
-  admin.disconnect()
+  // admin.disconnect()
 
   // app.listen(4000, () => {
   //   new SubscriptionServer(

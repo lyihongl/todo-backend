@@ -96,7 +96,7 @@ export class UserResolver {
       maxAge: 1000 * 60 * 60 * 24 * 30,
       secure: __prod__,
       sameSite: "lax",
-      httpOnly: true,
+      httpOnly: false,
       domain: "localhost",
       path: "/",
     });
@@ -152,7 +152,7 @@ export class UserResolver {
       maxAge: 1000 * 60 * 60 * 24 * 30,
       secure: __prod__,
       sameSite: "lax",
-      httpOnly: true,
+      httpOnly: false,
       domain: "localhost",
       path: "/",
     });

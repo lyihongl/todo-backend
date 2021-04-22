@@ -1,4 +1,5 @@
 import { rootCertificates } from "node:tls";
+import { MyContext } from "src/types";
 import {
   Arg,
   Ctx,
@@ -27,11 +28,18 @@ class Notification {
 export class ExportCompleteNotificationResolver {
   @Subscription({
     topics: ({ args }) => args.topic,
+    // topics: "TEST",
+    filter: ({ payload, args, context }) => {
+      console.log("payload", payload, "args", args, "context", context);
+      return true;
+    },
   })
   newNotification(
     @Arg("topic") topic: string,
+    @Ctx() { connection}: MyContext,
     @Root() notificationPayload: Notification
   ): Notification {
+    console.log("userid", connection)
     return notificationPayload;
   }
 }
