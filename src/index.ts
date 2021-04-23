@@ -21,13 +21,14 @@ import { ExportCompleteNotificationResolver } from "./resolvers/notification";
 import { createServer } from "http";
 import { TaskResolver } from "./resolvers/task";
 import redis from "redis";
+import { PostgreSqlDriver } from "@mikro-orm/postgresql";
 // import { Kafka } from "kafkajs";
 
 const main = async () => {
   const redisClient = redis.createClient();
   // redisClient.set("key", "value", redis.print)
   // redisClient.get("key", redis.print)
-  const orm = await MikroORM.init(mikroConfig);
+  const orm = await MikroORM.init({ ...mikroConfig, driver: PostgreSqlDriver });
   await orm.getMigrator().up();
   const app = express();
   app.set("trust proxy", 1);

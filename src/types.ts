@@ -1,4 +1,5 @@
-import { EntityManager, IDatabaseDriver, Connection } from "@mikro-orm/core";
+import { EntityManager, IDatabaseDriver, Connection, EntityName } from "@mikro-orm/core";
+import { PostgreSqlDriver, QueryBuilder, SqlEntityManager } from "@mikro-orm/postgresql";
 import { PubSub } from "apollo-server-express";
 import { Request, Response } from "express";
 import { ExecutionParams } from "subscriptions-transport-ws";
@@ -10,7 +11,7 @@ export type MyJwt = {
 };
 
 export type MyContext = {
-  em: EntityManager<IDatabaseDriver<Connection>>;
+  em: SqlEntityManager<PostgreSqlDriver> & EntityManager<IDatabaseDriver<Connection>>;
   req: Request;
   res: Response;
   jwtUserId: MyJwt | null;

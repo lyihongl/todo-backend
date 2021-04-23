@@ -17,6 +17,7 @@ import { Task } from "../entities/Task";
 import { User } from "../entities/User";
 import { CompletedTask } from "../entities/CompletedTask";
 import { MyContext } from "../types";
+import { asyncForEach } from "../utils/utils";
 
 @ObjectType()
 class TaskResponse {
@@ -47,27 +48,105 @@ export class TaskResolver {
   @Query(() => [TaskResponse])
   async getTasks(@Ctx() { em, res, jwtUserId }: MyContext) {
     if (jwtUserId) {
+      console.log("ok");
+      const qb = em.createQueryBuilder(Task);
+      const qb1 = em.createQueryBuilder(CompletedTask);
       // const user = new User();
       // user.id = jwtUserId.userId;
       // console.log(jwtUserId.userId);
-      let taskList: Task[];
       try {
-        taskList = await em.find(
-          Task,
-          {
-            userId: jwtUserId.userId,
-          },
-          {
-            populate: {
-              CompletedTasks: LoadStrategy.JOINED,
-            },
-          }
-        );
-        // console.log(taskList);
-        taskList.forEach((e) => {
-          console.log(e.CompletedTasks);
+        qb.select("*").where({
+          userId: jwtUserId.userId,
         });
-        return [];
+        const tasks: Task[] = await qb.execute();
+        // let completedTasks: CompletedTask[] = [];
+        let completedTasks: { [id: number]: CompletedTask[] } = {};
+
+        const now = new Date(Date.now());
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        await asyncForEach(tasks, async (task) => {
+          qb1.select("*").where({
+            $and: [{ taskId: task.id }, { timeOfCompletion: { $gte: today } }],
+          });
+          console.log("a");
+
+          const compTasksRes: CompletedTask[] | null = await qb1.execute();
+          if (compTasksRes) {
+            compTasksRes.forEach((e) => {
+              if (!completedTasks[task.id]) {
+                completedTasks[task.id] = [];
+              }
+              completedTasks[task.id].push(e);
+            });
+          }
+          // completedTasks.push(await qb1.execute());
+        });
+        console.log(tasks);
+        console.log(completedTasks);
+        const response: TaskResponse[] = tasks.map((e) => {
+          return {
+            id: e.id,
+            description: e.description,
+            title: e.title,
+            time: e.title,
+            completed: e.id in completedTasks,
+          };
+        });
+        return response;
+
+        // console.log(tasks);
+        // qb.select(["*"])
+        //   .where({
+        //     $and: [{ timeOfCompletion: { $gte: "2021-04-20" } }],
+        //   })
+        //   .join("t.taskId", "Task");
+        // console.log(qb.getQuery());
+        // const res = await qb.execute();
+        // console.log(res);
+        // em.createQueryBuilder()
+        // const taskList = await em.find(Task, {
+        //   $and: [
+        //     {
+        //       userId: jwtUserId.userId,
+        //     },
+        //   ],
+        // });
+        // const taskListCompletions: Task[] = await em.find(
+        //   Task,
+        //   {
+        //     $and: [
+        //       {
+        //         userId: jwtUserId.userId,
+        //       },
+        //       {
+        //         CompletedTasks: {
+        //           timeOfCompletion: {
+        //             $gte: "2021-04-22T23:38:26.000Z",
+        //           },
+        //         },
+        //       },
+        //     ],
+        //   },
+
+        //   {
+        //     populate: {
+        //       CompletedTasks: {},
+        //     },
+        //     strategy: LoadStrategy.SELECT_IN,
+        //   }
+        // );
+
+        // console.log(taskList);
+        // console.log(taskListCompletions);
+        // taskList.forEach((e) => {
+        //   console.log(e.CompletedTasks);
+        // });
+        // return taskListCompletions;
+        // return [];
       } catch (err) {
         console.log(err);
         return [];
@@ -148,11 +227,18 @@ export class TaskResolver {
     @Ctx() { em, jwtUserId }: MyContext
   ) {
     if (jwtUserId) {
-      const completedTask = em.create(CompletedTask, {
-        timeOfCompletion: Date.now(),
-        taskId: taskid,
+      const now = new Date(Date.now());
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const existing = await em.findOne(CompletedTask, {
+        $and: [{ taskId: taskid }, { timeOfCompletion: { $gte: today } }],
       });
-      await em.persistAndFlush(completedTask);
+      if (!existing) {
+        const completedTask = em.create(CompletedTask, {
+          timeOfCompletion: Date.now(),
+          taskId: taskid,
+        });
+        await em.persistAndFlush(completedTask);
+      }
     }
     return "ok";
   }
