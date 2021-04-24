@@ -24,22 +24,30 @@ export class Task {
   title!: string;
 
   @Field()
-  @Property({ columnType: "varchar(511)" })
-  description!: string;
-
-  @Field()
   @Property()
   time!: number;
 
-  @Field(()=>User)
+  @Field()
+  @Property()
+  enabled: boolean;
+
+  @Field(() => String)
+  @Property({ type: "date" })
+  createdAt = new Date();
+
+  @Field(() => String)
+  @Property({ type: "date", onUpdate: () => new Date() })
+  updatedAt = new Date();
+
+  @Field(() => User)
   @ManyToOne(() => User, { onDelete: "cascade" })
   userId!: User;
 
-  @Field(()=>[CompletedTask])
+  @Field(() => [CompletedTask])
   @OneToMany(() => CompletedTask, (task) => task.taskId, {
     cascade: [Cascade.ALL],
     orphanRemoval: true,
-    strategy: LoadStrategy.JOINED
+    strategy: LoadStrategy.JOINED,
   })
   CompletedTasks = new Collection<CompletedTask>(this);
 }

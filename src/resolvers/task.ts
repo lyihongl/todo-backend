@@ -26,8 +26,6 @@ class TaskResponse {
   @Field()
   title: String;
   @Field()
-  description: String;
-  @Field()
   time: Number;
   @Field({ defaultValue: false })
   completed: Boolean;
@@ -37,8 +35,7 @@ class TaskResponse {
 class CreateTaskInput {
   @Field()
   title: string;
-  @Field()
-  desc: string;
+
   @Field(() => Int)
   time: number;
 }
@@ -56,7 +53,14 @@ export class TaskResolver {
       // console.log(jwtUserId.userId);
       try {
         qb.select("*").where({
-          userId: jwtUserId.userId,
+          $and: [
+            {
+              userId: jwtUserId.userId,
+            },
+            {
+              enabled: true,
+            },
+          ],
         });
         const tasks: Task[] = await qb.execute();
         // let completedTasks: CompletedTask[] = [];
@@ -90,9 +94,8 @@ export class TaskResolver {
         const response: TaskResponse[] = tasks.map((e) => {
           return {
             id: e.id,
-            description: e.description,
             title: e.title,
-            time: e.title,
+            time: e.time,
             completed: e.id in completedTasks,
           };
         });
@@ -208,9 +211,9 @@ export class TaskResolver {
       // user.id = jwtUserId.userId;
       const newTask = em.create(Task, {
         title: taskInfo.title,
-        description: taskInfo.desc,
         userId: jwtUserId.userId,
         time: taskInfo.time,
+        enabled: true,
       });
 
       await em.persistAndFlush(newTask);
@@ -239,6 +242,20 @@ export class TaskResolver {
         });
         await em.persistAndFlush(completedTask);
       }
+    }
+    return "ok";
+  }
+  @Mutation(() => String)
+  async disableTask(
+    @Arg("taskid", () => Int) taskid: number,
+    @Ctx() { em, jwtUserId }: MyContext
+  ) {
+    if (jwtUserId) {
+      const task = await em.findOne(Task, { id: taskid });
+      if (task) {
+        task.enabled = false;
+      }
+      await em.flush();
     }
     return "ok";
   }

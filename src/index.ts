@@ -26,6 +26,12 @@ import { PostgreSqlDriver } from "@mikro-orm/postgresql";
 
 const main = async () => {
   const redisClient = redis.createClient();
+  redisClient.on("message", (channel, message) => {
+    console.log(
+      "Message: " + message + " on channel: " + channel + " is arrive!"
+    );
+  });
+  redisClient.subscribe("notification");
   // redisClient.set("key", "value", redis.print)
   // redisClient.get("key", redis.print)
   const orm = await MikroORM.init({ ...mikroConfig, driver: PostgreSqlDriver });
