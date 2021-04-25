@@ -44,9 +44,34 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  @Query(() => User, { nullable: true })
-  me(@Ctx() { jwtUserId }: MyContext) {
-    console.log(jwtUserId);
+  @Query(() => UserResponse, { nullable: true })
+  async me(@Ctx() { jwtUserId, em, res }: MyContext) {
+    console.log(jwtUserId?.userId);
+    if (jwtUserId?.userId) {
+      console.log("here");
+      const user = await em.findOne(User, { id: jwtUserId.userId });
+      if (user) {
+        const token = jwt.sign(
+          {
+            userId: user.id,
+          },
+          jwt_secret,
+          { expiresIn: 60 * 60 * 24 * 30 }
+        );
+
+        res.cookie("jwt", token, {
+          maxAge: 1000 * 60 * 60 * 24 * 30,
+          secure: __prod__,
+          sameSite: "lax",
+          httpOnly: false,
+          domain: "localhost",
+          path: "/",
+        });
+        return { user };
+      }
+      return null;
+    }
+    return null;
   }
 
   @Mutation(() => UserResponse)

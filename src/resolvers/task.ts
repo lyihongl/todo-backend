@@ -193,7 +193,9 @@ export class TaskResolver {
     @Ctx() { jwtUserId }: MyContext,
     @PubSub() pubsub: PubSubEngine
   ) {
+    console.log("pre publish", jwtUserId);
     if (jwtUserId?.userId) {
+      console.log("publishing");
       await pubsub.publish(`${jwtUserId.userId}`, {
         name: `${jwtUserId.userId}`,
       });

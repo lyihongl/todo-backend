@@ -36,10 +36,16 @@ export class ExportCompleteNotificationResolver {
   })
   newNotification(
     @Arg("topic") topic: string,
-    @Ctx() { connection}: MyContext,
+    @Ctx() {}: MyContext,
     @Root() notificationPayload: Notification
   ): Notification {
-    console.log("userid", connection)
+    console.log("userid", topic);
+    if (!notificationPayload) {
+      return {
+        name: "ok",
+      };
+    }
+    console.log("notif payload", notificationPayload);
     return notificationPayload;
   }
 }
