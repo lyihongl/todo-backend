@@ -48,9 +48,6 @@ export class TaskResolver {
       console.log("ok");
       const qb = em.createQueryBuilder(Task);
       const qb1 = em.createQueryBuilder(CompletedTask);
-      // const user = new User();
-      // user.id = jwtUserId.userId;
-      // console.log(jwtUserId.userId);
       try {
         qb.select("*").where({
           $and: [
@@ -72,6 +69,15 @@ export class TaskResolver {
           now.getMonth(),
           now.getDate()
         );
+        // const test = await em.find(Task, {
+        //   $and: [
+        //     {CompletedTasks: { timeOfCompletion: { $gte: today } }},
+        //     {
+        //       userId: jwtUserId.userId,
+        //     },
+        //   ],
+        // });
+        // console.log("test orm: ", test)
         await asyncForEach(tasks, async (task) => {
           qb1.select("*").where({
             $and: [{ taskId: task.id }, { timeOfCompletion: { $gte: today } }],
@@ -100,93 +106,12 @@ export class TaskResolver {
           };
         });
         return response;
-
-        // console.log(tasks);
-        // qb.select(["*"])
-        //   .where({
-        //     $and: [{ timeOfCompletion: { $gte: "2021-04-20" } }],
-        //   })
-        //   .join("t.taskId", "Task");
-        // console.log(qb.getQuery());
-        // const res = await qb.execute();
-        // console.log(res);
-        // em.createQueryBuilder()
-        // const taskList = await em.find(Task, {
-        //   $and: [
-        //     {
-        //       userId: jwtUserId.userId,
-        //     },
-        //   ],
-        // });
-        // const taskListCompletions: Task[] = await em.find(
-        //   Task,
-        //   {
-        //     $and: [
-        //       {
-        //         userId: jwtUserId.userId,
-        //       },
-        //       {
-        //         CompletedTasks: {
-        //           timeOfCompletion: {
-        //             $gte: "2021-04-22T23:38:26.000Z",
-        //           },
-        //         },
-        //       },
-        //     ],
-        //   },
-
-        //   {
-        //     populate: {
-        //       CompletedTasks: {},
-        //     },
-        //     strategy: LoadStrategy.SELECT_IN,
-        //   }
-        // );
-
-        // console.log(taskList);
-        // console.log(taskListCompletions);
-        // taskList.forEach((e) => {
-        //   console.log(e.CompletedTasks);
-        // });
-        // return taskListCompletions;
-        // return [];
       } catch (err) {
         console.log(err);
         return [];
       }
-      // try {
-      //   // const taskListResponse = await Promise.all(
-      //   taskList.forEach((task) => {
-      //     const now = new Date(Date.now());
-      //     const today = new Date(
-      //       now.getFullYear(),
-      //       now.getMonth(),
-      //       now.getDate()
-      //     );
-      //     console.log(today.toLocaleString());
-      //     let test: CompletedTask[] = [];
-      //     em.find(CompletedTask, {
-      //       $and: [
-      //         { taskId: task },
-      //         { timeOfCompletion: { $gt: "2021-04-18" } },
-      //       ],
-      //     })
-      //       .then((e) => (test = e))
-      //       .catch((e) => console.log("error", e));
-      //     // return {
-      //     //   id: task.id,
-      //     //   title: task.title,
-      //     //   description: task.description,
-      //     //   time: task.time,
-      //     //   completed: false,
-      //     // };
-      //   });
-      //   // );
-      //   // return taskListResponse;
-      // } catch (err) {
-      //   return {};
-      // }
     }
+    return [];
   }
   @Query(() => String)
   async testNotif(
@@ -198,6 +123,8 @@ export class TaskResolver {
       console.log("publishing");
       await pubsub.publish(`${jwtUserId.userId}`, {
         name: `${jwtUserId.userId}`,
+        info: "testing info",
+        desc: "testing desc",
       });
     }
     return "ok";

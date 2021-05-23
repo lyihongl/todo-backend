@@ -37,7 +37,7 @@ export class ExportCompleteNotificationResolver {
   newNotification(
     @Arg("topic") topic: string,
     @Ctx() {}: MyContext,
-    @Root() notificationPayload: Notification
+    @Root() notificationPayload: String
   ): Notification {
     console.log("userid", topic);
     if (!notificationPayload) {
@@ -45,7 +45,21 @@ export class ExportCompleteNotificationResolver {
         name: "ok",
       };
     }
+    // redisClient.on("message", (channel, message) => {
+    //   console.log(
+    //     "Message: " + message + " on channel: " + channel + " is arrive!"
+    //   );
+    //   return {
+    //     name: "redis",
+    //     desc: "test",
+    //     info: message,
+    //   };
+    // });
     console.log("notif payload", notificationPayload);
-    return notificationPayload;
+    return {
+      name: "redis-notif",
+      desc: notificationPayload,
+      info: "test",
+    };
   }
 }

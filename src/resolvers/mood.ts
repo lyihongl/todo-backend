@@ -1,12 +1,6 @@
-import { Mood } from "src/entities/Mood";
+import { Mood } from "../entities/Mood";
 import { MyContext } from "src/types";
-import {
-  Arg,
-  Ctx,
-  emitSchemaDefinitionFile,
-  Mutation,
-  Resolver,
-} from "type-graphql";
+import { Arg, Ctx, Mutation, Resolver } from "type-graphql";
 
 @Resolver()
 export class MoodResolver {
@@ -15,11 +9,13 @@ export class MoodResolver {
     @Arg("mood") mood: String,
     @Ctx() { em, jwtUserId }: MyContext
   ) {
-    if (jwtUserId) {
+    if (jwtUserId?.userId) {
       const newMood = em.create(Mood, {
         mood,
+        userId: jwtUserId.userId,
       });
       await em.persistAndFlush(newMood);
     }
+    return "ok";
   }
 }
